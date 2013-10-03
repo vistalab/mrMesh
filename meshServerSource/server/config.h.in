@@ -1,0 +1,2 @@
+#cmakedefine HAVE_OPENGL_GLU_H 1
+#cmakedefine HAVE_NO_SOCKET_LOCALHOST 1

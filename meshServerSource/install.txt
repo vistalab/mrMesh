@@ -1,0 +1,371 @@
+Instructions On Compiling And Packaging mrMesh
+==============================================
+Author: Mike Bennett (mikemb@stanford.edu), 2011-2012
+
+Numerous developers have coordinated and contributed to the development
+of mrMesh, including Mike Bennett, Bob Dougherty, Roozbeh Kiani, Mark
+Hymers and others. If you find a bug or have a patch please contact
+us, thanks.
+
+
+* Binaries *
+
+Pre-build versions of mrMesh are available in the packages folder.
+Versions are provided for Mac OS X 10.6+, Windows 7 and Linux Ubuntu
+11.04. tcpToolbox is also needed, and a cross-platform version is
+available in the packages folder. If you're using 32 bit Matlab you 
+have to use the 32 bit mex files, otherwise use the 64 bit mex files.
+
+
+* Sections *
+
+- Quick Start For Compiling mrMesh
+
+- Packaging mrMesh For Redistribution
+
+- Detailed Instructions For Building mrMesh
+-- Building mrMeshSrv
+-- Building tcpToolbox
+-- Special Notes On Compiling 32 bit Versus 64 Bit
+-- Compiling on Apple Macs
+-- Compiling on Linux
+-- Compiling on Windows + Cygwin 
+--- Instructions for compiling mex files on Windows
+
+- Build Maintainer Notes
+
+
+************************************************************************
+Quick Start For Compiling MrMesh
+************************************************************************
+
+For detailed directions on building mrMesh see the instructions below. Short
+steps are (starting in the mrMesh folder):
+
+1) mkdir build (if it doesn't exist)
+2) cd build
+3) cmake ..
+4) make
+5) platform specific binary / executable can be found in build/server and
+will be (mostly) called "mrMeshSrv"
+6) platform specific mex file can be found in build/tcpToolbox and will be
+called "pnet.mex*"
+
+
+mrMesh has four main dependencies:
+
+1) wxWidgets
+2) VTK
+3) OpenGL / Mesa / GLUT
+4) Matlab
+
+If you have those already installed then mrMesh will compile and run
+on your computer.
+
+If you don't have them then you must install them before compiling mrMesh.
+Below are detailed instructions for building mrMesh, wxWidgets and VTK for
+Windows, Linux and Mac.
+
+Note: When building VTK and wxWidgets, it's best to build them as static
+libraries BUT that isn't a requirement. The reason its better is that it
+means mrMesh will be less inclined to stop working with library / OS
+upgrades.
+
+Note 2: mrMeshSrv depends on Matlab to compile the mex pnet mex file. pnet
+is used by the Matlab scripts in tcpToolbox to enable Matlab to communicate
+with mrMeshSrv. If Matlab isn't in your path then the pnet mex file won't be
+compiled.
+
+Note 3: Three other mex files are also compiled, these are build_mesh,
+curvature and smooth_mesh. 
+
+
+
+************************************************************************
+Packaging mrMesh For Redistribution
+************************************************************************
+
+If you'd like to build and redistribute a platform binary for mrMesh
+you can use the files in the "packages" directory. There are pre-built
+packages for MacOS X, Windows and Linux.
+
+Creating packages isn't an automated process, though it is simple - as
+all it requires is compiling and copying the mrMeshSrv file to a specific
+location in the packages directory. You may also have to compile up
+pnet.mex and also copy it to the packages folder.
+
+The following instructions all assume you are in the build folder, having
+just compiled mrMeshSrv.
+
+To create the MacOS X package:
+	cp server/mrMeshSrv ../packages/MacOSX10.6/mrMeshMac.app/Contents/MacOS
+	cp tcpToolbox/pnet.mex* ../packages/tcpToolbox
+mrMeshMac.app can then be distributed as a Mac application.
+
+To create the Windows package:
+	cp server/mrMeshSrv.exe ../packages/Windows7
+	cp tcpToolbox/pnet.mex* ../packages/tcpToolbox
+The Windows7 folder can then be renamed, zipped and redistributed.
+Note: If mrMeshSrv.exe doesn't run, then you may need to overwrite the
+cyg*.dll files in the Windows 7 folder. Copy the cyg*.dll files from the
+cygwin environment you used to compile mrMeshSrv.exe (mrMeshSrv.exe may
+not have run because it depends on newer dlls).
+
+To create the Linux package:
+	cp server/mrMeshSrv ../packages/LinuxUbuntu11.04
+	cp tcpToolbox/pnet.mex* ../packages/tcpToolbox
+Renamed the LinuxUbuntu11.04 folder to represent the distribution you
+built mrMeshSrv on. Then tar up and redistribute the binary to your group.
+
+
+
+************************************************************************
+Detailed Instructions For Building mrMesh
+************************************************************************
+
+There are two inter-dependent parts to mrMesh. mrMeshSrv and the tcpToolbox.
+Both are required to use mrMesh. mrMeshSrv creates the interactive GUI,
+while tcpToolbox enables matlab to talk to mrMeshSrv.
+
+
+- Building mrMeshSrv
+
+Building mrMesh requires a Unix-like layer on your computer. For Linux 
+and MacOSX make sure you've got gcc and the related build tools installed.
+For Windows, you need to install cygwin and gcc, which is freely available
+at www.cygwin.com
+
+You also need cmake, which is freely available from cmake.org. cmake is
+also increasingly commonly packaged with many Unix-like OSes.
+
+mrMesh depends on a range of libraries to work. To compile mrMesh you
+need the libraries and headers installed. You may also need to compile
+the libraries to ensure they are built correctly for linking with mrMesh.
+Instructions are provided below on building the libraries BUT if you can
+you should download and compile mrMesh with pre-build versions of the
+libraries. More detailed instructions on building the libraries are provided
+in the documentation provided with the libraries.
+
+The following are the core libraries with headers required by mrMesh. They
+MUST be present for mrMesh to compile (and work):
+
+1) wxWidgets - www.wxwidgets.org
+2) VTK - www.vtk.org
+3) OpenGL / Mesa - common, make sure development version is install by your
+	package manager (including in cygwin)
+
+The build instructions below have been tested with the GNU compiler, which
+is freely available and well supported across all the main operating
+systems. To get GNU compilers on Macs you need to install Apple's XCode
+(its free).
+
+
+- Building tcpToolbox (pnet.mex)
+
+tcpToolbox is a set of Matlab scripts and a mex file, both of which should
+be in your Matlab path. The scripts and code for the mex file are in the
+tcpToolbox folder.
+
+The automated build for mrMesh automatically compiles the pnet.mex file
+BUT it assumes you have Matlab in your path AND you've got Matlab's mex
+compiler setup correctly (via command "mex -setup").
+
+
+- Building build_mesh, curvature and smooth_mesh (mex)
+
+Building the other mex files is the same as with tcpToolbox EXCEPT on Windows
+you need to ensure that you are linking against the correct vtk*.lib files
+for your compiler. See the section "Compiling on WINDOWS + CYGWIN" for more
+details.
+
+
+- Special Notes On Compiling 32 bit Versus 64 Bit
+
+At the time of ths writing, Matlab and operating systems are moving from
+32 architectures to 64 bit architectures. This makes compiling mrMesh
+on Macs and Windows more complex than previously.
+
+If you build the 64 bit version of the Matlab mex files then ALL the
+dependent libraries must also be built as 64 bit. Otherwise the objects
+file produced during compilation cannot be linked.
+
+
+
+========================================================================
+Compiling on Apple Macs
+========================================================================
+Key aspect of getting mrMesh to compile on Mac is to ensure everything
+is compiled 32 bit (even in Lion). Note: This was tested with Mac OS X
+Lion 10.7.
+
+
+* wxWidgets
+
+- Either download or build wxmac yourself with:
+
+set arch_flags="-arch i386"
+./configure --with-opengl --with-macosx-sdk=/Developer/SDKs/MacOSX10.6.sdk --with-macosx-version-min=10.6  CFLAGS="$arch_flags" CXXFLAGS="$arch_flags" CPPFLAGS="$arch_flags" LDFLAGS="$arch_flags" OBJCFLAGS="$arch_flags" OBJCXXFLAGS="$arch_flags"
+make -j2
+make install
+
+
+* VTK
+- If you don't have cmake - download and install it from cmake.org
+- Download VTK src from vtk.org
+- unzip and compile via following steps
+cd into vtk directory
+mkdir build
+cd build
+ccmake ..
+press 'c' key
+set BUILD_SHARED_LIBS to OFF
+set VTK_USE_PARALLEL to ON
+set CMAKE_OSX_ARCHITECTURES to i386
+press 't' key
+set VTK_USE_64BIT_IDS to OFF 	# Off for mrMesh)
+press 'c' key 			# May have to do it twice
+press 'g' key
+make -j2
+make install
+
+
+* mrMesh
+
+mkdir build
+cd build
+cmake ..
+make -j2
+
+
+========================================================================
+Compiling on LINUX
+========================================================================
+# You will have to download wxWidgets and VTK before you can run these steps. 
+# For wxWidgets - http://www.wxwidgets.org/downloads/ [get wxAll]
+# For VTK       - http://vtk.org/VTK/resources/software.html [get stable source]
+
+* wxWidgets
+
+# Build wxWidgets with an x11 dependency (means X11 dev libs required).
+
+./configure --with-x11 --with-opengl
+make -j2		# Doesn't have to be '2', can be number of CPU cores available (parallel compile)
+make install
+
+
+* VTK
+
+
+mkdir build			# In vtk folder
+cd build
+ccmake ..			# You make need to install ccmake - the cmake gui
+# press 'c' key
+set BUILD_SHARED_LIBS to OFF	# Not critical, but makes mrMeshSrv more tolerant of OS updates / upgrades
+set VTK_USE_PARALLEL to ON
+# press 't' key
+set VTK_USE_64BIT_IDS to OFF 	# It is probably already off
+# press 'c' key 			# May have to do it twice
+# press 'g' key
+make -j2
+make install
+
+
+* mrMesh
+
+mkdir build		# In the mrMesh directory
+cd build
+cmake ..
+make -j2
+
+- mrMeshSrv will be built and found in the server sub-folder in the build folder
+
+
+========================================================================
+Compiling on WINDOWS + CYGWIN
+========================================================================
+
+With cygwin setup install opengl libraries, cmake and GLUT libraries.
+
+When compiling on Windows, the CYGWIN environment with Matlab enables you
+to compile mrMeshSrv and pnet.mex. The extra mex files are more complex to
+compile and may not successfully compile with the build script (though we have
+simplified that process). More details are below.
+
+
+* VTK
+- If you don't have cmake - download and install it from cmake.org
+- Download VTK src from vtk.org
+- unzip and compile via following steps
+cd into vtk directory
+mkdir build
+cd build
+ccmake ..
+press 'c' key
+set BUILD_SHARED_LIBS to OFF
+set VTK_USE_PARALLEL to ON
+set CMAKE_BUILD_TYPE to UNIX
+press 't' key
+set VTK_USE_64BIT_IDS to OFF 	# Off for mrMesh)
+press 'c' key 			# May have to do it twice
+press 'g' key
+make -j2
+make install
+
+
+
+* wxWidgets
+
+export CPPFLAGS=-D__USE_W32_SOCKETS
+./configure --with-opengl
+make -j2
+make install 
+
+Note: You might have to patch the Makefile to get wxWidgets to link correctly. If so, for the variable LIBS replace "-luuid" with "/usr/lib/w32api/libuuid.a" (no quotes). You may also have to add "-lgl" to LIBS if wxWidgets isn't properly linking again OpenGL (error linking cygwxmsw28_gl_gcc_custom-0.dll).
+
+
+
+
+* mrMesh
+
+mkdir build
+cd build
+cmake ..
+make -j2
+
+
+* Instructions for compiling mex files on Windows
+
+The following does not apply to pnet.mex as that has none significant external
+dependencies.
+
+The following does apply to compiling build_mesh.mex, curvature.mex and smooth_mesh.mex
+
+Compiling the mex files on Windows can be tricky. As it depends on what version
+of Matlab you have install (32 versus 64 bit), 2009 or 2011 and what Visual Studio
+compiler you have installed and setup with "mex -setup". Our build env assumed Matlab
+is setup to use Microsoft's Visual Studio compiler.
+
+To simpilify the compile process we provide pre-built versions of the libs
+that build_mesh, curvature and smooth_mesh need during the build process, i.e.
+vtkCommon32/64.lib, vtkFiltering32/64.lib, vtkGraphics32/64.lib and vtksys32/64.lib
+
+There are two sets of these lib files. If you're compiling the mex files with Visual
+Studio 2010 then use the lib files in mex/VS2010, and if you're using VS 2008 use the
+lib files in VS2008.
+
+To use the files, copy them from the mrMesh/mex/VS2010 or mrMesh/mex/2008 folder to
+the mrMesh/mex folder, then follow the standard mrMesh build instructions.
+
+If you're using a different Visual Studio compiler, then you'll need to build the VTK
+libraries with Visual Studio yourself. Documentation on how to do so can be found on
+the vtk.org site. You'll also have to rebuild wxWidgets for linking against VTK.
+
+
+
+========================================================================
+Build Maintainer Notes
+========================================================================
+
+- vtk 5.6.1 (all provided dll and libs are this version)
+- wxWidgets 2.8.12
+

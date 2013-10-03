@@ -1,0 +1,81 @@
+#
+# Makefile for mrMesh
+#
+# 2003.05.07 Bob Dougherty
+#
+
+ifeq ($(DEBUG), 1)
+DEBUGWX=--debug=yes
+DEBUGCPP=-g
+else
+DEBUGWX=
+DEBUGCPP=
+endif
+
+WXCONFIG=wx-config --version=2.8 $(DEBUGWX)
+
+# wx-config --libs
+WX_LIBS = $(shell $(WXCONFIG) --libs)
+WX_GLLIBS = $(shell $(WXCONFIG) --libs gl)
+VTK_LIBS = -lvtkRendering -lvtkGraphics -lvtkImaging -lvtkCommon -lvtkFiltering
+# wx-config --cxxflags
+WX_CXXFLAGS = $(shell $(WXCONFIG) --cxxflags)
+
+# Directories to search for header files
+SEARCHDIRS := -iquote -I. -I/usr/include/vtk-5.0 ${WX_CXXFLAGS}
+
+# May want to add -O2 or -O3 and maybe -march=i686 for better performance
+# -mfpmath=sse 	enables sse/sse2 for doubleing point operations
+# -mmmx 	enables the mmx unit in Pentium II CPUs
+# -msse 	enables the sse unit in Pentium III CPUs
+# -msse2 	enables the sse2 unit in Pentium IV CPUs
+# -msse-math 	enables math support via the sse unit in Pentium III and IV
+# -m3dnow 	enables the 3dnow unit in Athlons
+#DEPENDFLAGS := -Wall -Wno-deprecated -O3 -mcpu=i686 -march=i686 -msse -mfpmath=sse ${SEARCHDIRS}
+DEPENDFLAGS := -Wall -Wno-deprecated -O3 ${SEARCHDIRS}
+
+
+# C preprocessor (C, C++, FORTRAN)
+CPPFLAGS = $(DEBUGCPP)
+
+# C++ compiler
+CXX      := g++
+CXXFLAGS  = ${DEPENDFLAGS}
+
+%.o : %.cc
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c $< -o $@
+
+%.o : %.C
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c $< -o $@
+
+%.o : %.cpp
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c $< -o $@
+
+%.o : %.cxx
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c $< -o $@
+
+# C/C++/Eiffel/FORTRAN linker
+#LINKER    := /usr/local/bin/gcc
+LINKER    := gcc
+LDFLAGS    := 
+LIBS :=  ${WX_GLLIBS} ${WX_LIBS} ${VTK_LIBS}
+
+# mrMeshSrv
+mrMeshSrv.glxa64 : ./3dview.o ./actor.o ./camera.o ./clientframe.o \
+./commandhandler.o ./cursor.o ./doublearray.o ./grayVolume.o ./helpers.o \
+./imagequad.o ./light.o ./matrix3x3.o ./mesh.o \
+./mrmeshsrvapp.o ./parametersmap.o ./polydatabuffer.o ./polyline.o \
+./progressindicator.o ./roi.o ./scene.o ./serverconsole.o ./stdafx.o \
+./text.o ./transformarrow.o ./vtkfilter.o ./vtkPolyDataSingleSourceShortestPath.o
+	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
+
+# target for making everything
+all: mrMeshSrv.glxa64
+
+# target for removing all object files
+tidy: 
+	@${RM} core ./*.o
+
+# target for removing all object files and executable
+clean: 
+	@${RM} core ./*.o mrMeshSrv.glxa64

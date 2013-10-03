@@ -1,0 +1,180 @@
+THESE NOTES ARE NOW OUT OF DATE. DO NOT USE - Mike Bennett (16/Oct/2011)
+
+
+BUILD NOTES:
+
+To build the mrMesh server, you need the wxWindows and VTK libraries 
+and headers. The mrMesh client is no longer needed, as this functionality 
+is now implemented in Matlab in mrMesh.m. But, if you did want to build 
+the mrMesh client, you only need the wxWindows base library. 
+
+It's best to link wxWindows and VTK statically to avoid compatibility issues
+when you distribute the binaries and/or update your own system. 
+
+Linux:
+download and install wxWidgetsGTK (http://www.wxwidgets.org/). I used 
+version 2.8.9. To build the wxWidgets libraries, try this:
+
+./configure --prefix=/chroma/scr1/local --enable-monolithic --with-gtk --with-opengl --disable-shared --disable-unicode 
+make -j4
+make install
+ldconfig
+
+To build VTK, download it from http://public.kitware.com/VTK/. The following commands might work:
+
+   cd /slate/scr1/
+   # Create a file for CMAKE password entries
+   echo "/1 :pserver:anonymous@public.kitware.com:2401/cvsroot/VTK A<,]" > .cvspass
+   export CVS_PASSFILE=`pwd`/.cvspass
+
+   cvs -qd :pserver:anonymous@public.kitware.com:/cvsroot/VTK co -r VTK-5-0-4 VTK
+   mkdir VTK_build
+   cd VTK_build
+   cmake \
+          -DBUILD_SHARED_LIBS:BOOL=OFF \
+          -DBUILD_EXAMPLES:BOOL=OFF \
+          -DBUILD_TESTING:BOOL=OFF \
+          -DCMAKE_BUILD_TYPE:STRING=Release \
+          -DVTK_USE_HYBRID:BOOL=ON \
+          -DVTK_USE_ANSI_STDLIB:BOOL=ON \
+          -DVTK_USE_PARALLEL:BOOL=ON \
+          -DVTK_USE_RENDERING:BOOL=ON \
+          -DVTK_USE_PATENTED:BOOL=ON \
+          -DCMAKE_CXX_FLAGS_RELEASE:STRING="-O3 -DNDEBUG" \
+          -DCMAKE_INSTALL_PREFIX:PATH=/slate/scr1/local/ \
+          ../VTK
+
+   make -j8
+   make install
+
+Note that when statically linking vtk, the precise order in whick ou link the 
+vtk libs matters. Here is the link order that worked for me:
+
+-lvtkHybrid -lvtkVolumeRendering -lvtkRendering -lvtkIO -lvtkGenericFiltering \ 
+-lvtkGraphics -lvtkImaging -lvtkFiltering -lvtkCommon -lvtkftgl -lvtkfreetype \ 
+-lvtkDICOMParser -lvtkexpat -lvtktiff -lvtkpng -lvtkjpeg -lvtkzlib -lvtksys
+
+Alternatively, you can build against a VTK binary. Eg:
+
+   sudo yum install vtk-devel
+
+and then build mrMesh against the system vtk libs. Note that they will
+be dynamically linked, so all systems that use the resulting binary will
+need to have the same version of VTK installed. (Or, you can make it static
+with 'statify'.)
+
+To build mrMeshSrv, go into the 'server' directory and run make. If this doesn't
+work, you may need to edit the Makefile.
+
+
+CHANGELOG:
+
+2011.11.04 MB: Created an automatic build system that greatly simplifies
+   compiling mrMesh on Linux, Macs and Windows. Reorganised mrMesh directory
+   structure, with additions of packages folder, and tcpToolbox. Patched
+   code so it continues working across platforms.
+
+2010.01.06 RFD: Incorporated many bug fixes from Roozbeh Kiani 
+<roozbeh@stanford.edu>. Notes from Roozbeh:
+   mrMeshSrv is now working well on Matlab 2009b running on Fedora 12. My
+   build of mrMeshSrv uses the latest versions of wxWidgest and VTK dynamic
+   link libraries, with their standard configuration. Below is a list of
+   the major changes in the code. I describe the problems I faced (in
+   chronological order), the underlying bug and the solution. The minor
+   changes are not listed.
+   1. mrMeshSrv crashed at initialization. Corrected by ensuring OpenGL
+   functions are called only after wxGLCanvas::SetCurrent and gl
+   initialization code are executed. Redefined m_Scene and its
+   initialization in C3DView.
+   2. The shape of the loaded mesh was distorted on the screen. Corrected
+   by modifying CMesh::Triangle and debugging
+   CParametersMap::CreateFromString. The main problem was that
+   glDrawElements accepts uint32, but CMesh::Triangle::v was uint64
+   (vtkIdType). That distorted the mapping between mesh vertices and
+   triangles.
+   3. C3DView failed to receive input from keyboard. As a result, the
+   drawing shortcuts did not work. Corrected by modifying the constructor
+   of C3DView. The problem was related to how wxWidgets handles keyboard
+   focus.
+   4. The pen tool failed to draw on the mesh. Corrected by modifying
+   C3DView::UnProject. The problem was caused by misinterpretation of the
+   depth of mesh at the mouse pointer. OpenGL failed to retrieve the
+   clicked location in the 2.5 dimensional space and gluUnproject failed to
+   retrieve the clicked location on the mesh.
+   5. The messages sent by mrMeshSrv were not properly received by Matlab.
+   Corrected by adding proper support for Ascii communication. The problem
+   was that the standard wxWidgets library uses Unicode strings, but matlab
+   expects Ascii. I debugged and modified CParametersMap. If we ever decide
+   to use Unicode on the Matlab side we will only need to undefine a flag
+   in CParametersMap. In my opinion we should eventually retire our tcp/ip
+   communication method, and use CORBA, an industry standard method that is
+   developed specifically for inter-process communication. CORBAR is OS
+   independent and can flexibly handle different data structures. Take a
+   look, and let me know what you think.
+
+    I chose to use the standard dynamic link libraries of wxWidget and VTK
+   because they offer several big advantages:
+   1. Building mrMeshSrv for Windows, Mac and other versions of Linux
+   becomes much easier, because the standard dynamic link libraries are
+   already available for all platforms.
+   2. mrMeshSrv will benefit from the future improvements in wxWidgets and
+   VTK.
+   3. Running the code on future versions of Fedora and Matlab becomes
+   hassle-free.
+   There is, however, a disadvantage associated with using DLLs: loading
+   mrMeshSrv takes more time. That's usually not an big issue because we
+   can preload the necessary libraries before running mrMeshSrv. It is also
+   possible to combine the binary code of meMeshSrv with the dynamic
+   libraries and make a single file that runs independent of the libraries.
+   However, for the reasons mentioned above I am hesitant to statify [that
+   is really a new word! :)] mrMeshSrv.
+
+    I tried to minimize my changes in the original mrMeshSrv code. Using
+   the standard libraries made the code break at multiple places as I
+   listed above. To find the bugs and design a good solution, I ended up
+   rewriting large potions of the code--for viewing the meshes (problem #2
+   above) I almost developed a complete mesh viewer using OpenGL.
+   Fortunately, most of the bugs came down to incompatibility of data types
+   (e.g. using uint64 where uint32 should have been used). I have fully
+   preserved the structure of mrMeshSrv to avoid confusing those who have
+   already familiarized themselves with the older versions of mrMeshSrv.
+
+
+2009.04.08 RFD: Incorporated the edits from Mark Hymers 
+<Mark.Hymers@ynic.york.ac.uk>. Notes from Mark:
+  I then found that mrMeshSrv was only sending back the first
+  character of the response which was breaking the communication.  I
+  suspect this is due to the fact that the memmove directly from the
+  pointer to the wxString wasn't working due to our build being the
+  unicode variant (this is a bit of handwaving though).  By getting a
+  pointer to a multibyte array (using wxCharBuffer and the .mb_str()
+  call), I managed to get it to return the whole response and then it all
+  started working properly.
+
+2009.03.18 RFD: got it buildng under modern versions of vtk and wx. Added
+the updated instructions above.
+
+2003.10.29 RFD: A whole set of tubes can now be built with the tube command-
+just put a [999,999,999] in the points list whenever you want to start a new
+tube. All tubes built this way form a single mesh (ie. all are one actor).
+This makes building large bundles of tubes about 1000 times faster.
+
+2003.10.22 RFD: Added set_size command to 3dview. This allows the user to 
+resize the client window with a command. This is especially useful for making
+movies, where you might want screenshots to have a particular aspect-ratio.
+Unfortunately, it doesn't quite do the right thing (the client area is resized, 
+but the window frame is not).
+
+2003.10.21 RFD: Fixed screenshot bug (saved images were always corrupt on
+linux and were corrupt on windows after resizing the client window). The fix
+is actually a work-around for what is apparently a bug (feature?) in OpenGL.
+Instead of letting OpenGL strip away the alpha channel, we do it ourselves
+(see 3dview.cpp). Also, the screenshot command now returns the image data 
+as an rgb array. The file-save is optional- suppress it by sending 'nosave' as
+the filename.
+
+2003.10.16 RFD: added background command to scene.cpp. This makes a simple 
+openGL call to change the scene background color.
+
+2003.09.?? RFD: added option for windowed-sinc smoothing in addition to
+the default vtk smoothing (see vtkfilter.cpp).

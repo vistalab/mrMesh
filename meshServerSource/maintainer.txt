@@ -1,0 +1,7 @@
+1. 32 bit versus 64 bit
+2. setable paramters, 32 / 64, build on mex, tcp or mrMeshSrv
+3. packages folder - how does it work (INSTALL automatic in their)
+4. What are vtk libs in mex folder (how to create them win32/64)
+5. Windows 7 SDK for 64 bit
+
+

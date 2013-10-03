@@ -1,0 +1,3 @@
+8-21-12 LMP
+
+These were compiled using Ubuntu 12.04LTS, VTK 5.8, and WXWidgets 2.8.11 on a 64-bit Machine.
